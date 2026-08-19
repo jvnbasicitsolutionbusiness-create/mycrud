@@ -1,5 +1,5 @@
 const API_URL =
-    "https://script.google.com/macros/s/AKfycbxiKcV1BydQ8hmQ7woxriH_dlCZByJBPKzaKbNx1sdz3QF_E0P5YIAU8-Qk2kmcqljC/exec";
+    "https://script.google.com/macros/s/AKfycbzj_o_-U7ngHlCFHw9AOscuOcyV01447PTmemJyFodeYKMvnrvFZ6em6bPYeOrMW0QT/exec";
 
 let students = [];
 let editingRow = null;
