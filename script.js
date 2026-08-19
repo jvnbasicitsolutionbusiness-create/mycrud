@@ -1,165 +1,280 @@
-const API_URL = "https://script.google.com/macros/s/AKfycbxiKcV1BydQ8hmQ7woxriH_dlCZByJBPKzaKbNx1sdz3QF_E0P5YIAU8-Qk2kmcqljC/exec";
+const API_URL =
+    "https://script.google.com/macros/s/AKfycbxiKcV1BydQ8hmQ7woxriH_dlCZByJBPKzaKbNx1sdz3QF_E0P5YIAU8-Qk2kmcqljC/exec";
 
 let students = [];
-let editingId = null;
+let editingRow = null;
 
 
-// ==============================
-// LOAD STUDENTS
-// ==============================
+// ============================================
+// LOAD STUDENTS - READ
+// ============================================
 
 async function loadStudents() {
 
     try {
 
-        const response = await fetch(API_URL);
+        const response =
+            await fetch(API_URL);
 
-        const data = await response.json();
+        if (!response.ok) {
 
-        students = data;
+            throw new Error(
+                "HTTP Error: " + response.status
+            );
+
+        }
+
+
+        const result =
+            await response.json();
+
+
+        console.log("GET Response:", result);
+
+
+        // Check Apps Script response
+
+        if (!result.success) {
+
+            throw new Error(
+                result.error ||
+                "Failed to load records."
+            );
+
+        }
+
+
+        // IMPORTANT:
+        // Apps Script returns { success, messages }
+
+        students =
+            result.messages || [];
+
 
         displayStudents(students);
 
+
     } catch (error) {
 
-        console.error("Error loading students:", error);
+        console.error(
+            "Error loading students:",
+            error
+        );
 
-        alert("Failed to load student records.");
+        alert(
+            "Failed to load student records.\n\n" +
+            error.message
+        );
 
     }
+
 }
 
 
-// ==============================
+// ============================================
 // DISPLAY STUDENTS
-// ==============================
+// ============================================
 
 function displayStudents(data) {
 
     const tableBody =
-        document.getElementById("studentTableBody");
+        document.getElementById(
+            "studentTableBody"
+        );
+
 
     tableBody.innerHTML = "";
 
-    if (data.length === 0) {
+
+    // No records
+
+    if (!data || data.length === 0) {
 
         tableBody.innerHTML = `
+
             <tr>
-                <td colspan="7" style="text-align:center;">
+
+                <td
+                    colspan="7"
+                    style="text-align:center;"
+                >
                     No records found
                 </td>
+
             </tr>
+
         `;
 
         return;
+
     }
+
+
+    // Display records
 
     data.forEach(student => {
 
-        const row = document.createElement("tr");
+        const row =
+            document.createElement("tr");
+
 
         row.innerHTML = `
 
-            <td>${student.ID}</td>
+            <td>
+                ${student.ID}
+            </td>
 
-            <td>${student["First Name"]}</td>
+            <td>
+                ${student["First Name"]}
+            </td>
 
-            <td>${student["Last Name"]}</td>
+            <td>
+                ${student["Last Name"]}
+            </td>
 
-            <td>${student.Course}</td>
+            <td>
+                ${student.Course}
+            </td>
 
-            <td>${student["Year Level"]}</td>
+            <td>
+                ${student["Year Level"]}
+            </td>
 
-            <td>${student.Email}</td>
+            <td>
+                ${student.Email}
+            </td>
 
             <td>
 
                 <button
+                    type="button"
                     class="btn-edit"
-                    onclick="editStudent('${student.ID}')">
+                    onclick="editStudent('${student.ID}')"
+                >
                     Edit
                 </button>
 
                 <button
+                    type="button"
                     class="btn-delete"
-                    onclick="deleteStudent('${student.ID}')">
+                    onclick="deleteStudent(${student.row})"
+                >
                     Delete
                 </button>
 
             </td>
+
         `;
+
 
         tableBody.appendChild(row);
 
     });
+
 }
 
 
-// ==============================
-// ADD / UPDATE
-// ==============================
+// ============================================
+// ADD / UPDATE FORM
+// ============================================
 
 document
     .getElementById("studentForm")
-    .addEventListener("submit", async function(event) {
+    .addEventListener(
+        "submit",
+        async function(event) {
 
-        event.preventDefault();
-
-        const firstName =
-            document.getElementById("firstName").value;
-
-        const lastName =
-            document.getElementById("lastName").value;
-
-        const course =
-            document.getElementById("course").value;
-
-        const yearLevel =
-            document.getElementById("yearLevel").value;
-
-        const email =
-            document.getElementById("email").value;
+            event.preventDefault();
 
 
-        // ==========================
-        // UPDATE
-        // ==========================
+            const firstName =
+                document
+                    .getElementById("firstName")
+                    .value
+                    .trim();
 
-        if (editingId !== null) {
 
-            await updateStudent(
-                editingId,
-                firstName,
-                lastName,
-                course,
-                yearLevel,
-                email
-            );
+            const lastName =
+                document
+                    .getElementById("lastName")
+                    .value
+                    .trim();
+
+
+            const course =
+                document
+                    .getElementById("course")
+                    .value
+                    .trim();
+
+
+            const yearLevel =
+                document
+                    .getElementById("yearLevel")
+                    .value;
+
+
+            const email =
+                document
+                    .getElementById("email")
+                    .value
+                    .trim();
+
+
+            // ====================================
+            // UPDATE
+            // ====================================
+
+            if (editingRow !== null) {
+
+                await updateStudent(
+
+                    editingRow,
+
+                    firstName,
+
+                    lastName,
+
+                    course,
+
+                    yearLevel,
+
+                    email
+
+                );
+
+            }
+
+
+            // ====================================
+            // CREATE
+            // ====================================
+
+            else {
+
+                await addStudent(
+
+                    firstName,
+
+                    lastName,
+
+                    course,
+
+                    yearLevel,
+
+                    email
+
+                );
+
+            }
 
         }
-
-        // ==========================
-        // CREATE
-        // ==========================
-
-        else {
-
-            await addStudent(
-                firstName,
-                lastName,
-                course,
-                yearLevel,
-                email
-            );
-
-        }
-
-    });
+    );
 
 
-// ==============================
-// ADD STUDENT
-// ==============================
+// ============================================
+// CREATE STUDENT
+// ============================================
 
 async function addStudent(
     firstName,
@@ -171,103 +286,188 @@ async function addStudent(
 
     try {
 
-        const response = await fetch(API_URL, {
+        const response =
+            await fetch(API_URL, {
 
-            method: "POST",
+                method: "POST",
 
-            body: JSON.stringify({
+                body: JSON.stringify({
 
-                action: "create",
+                    action: "create",
 
-                firstName: firstName,
-                lastName: lastName,
-                course: course,
-                yearLevel: yearLevel,
-                email: email
+                    firstName:
+                        firstName,
 
-            })
+                    lastName:
+                        lastName,
 
-        });
+                    course:
+                        course,
 
-        const result = await response.json();
+                    yearLevel:
+                        yearLevel,
 
-        if (result.success) {
+                    email:
+                        email
 
-            alert("Student added successfully!");
+                })
 
-            document
-                .getElementById("studentForm")
-                .reset();
+            });
 
-            loadStudents();
 
-        } else {
+        const result =
+            await response.json();
 
-            alert("Failed to add student.");
+
+        console.log(
+            "CREATE Response:",
+            result
+        );
+
+
+        if (!result.success) {
+
+            throw new Error(
+                result.error ||
+                "Failed to add student."
+            );
 
         }
 
+
+        alert(
+            "Student added successfully!"
+        );
+
+
+        clearForm();
+
+
+        await loadStudents();
+
+
     } catch (error) {
 
-        console.error(error);
+        console.error(
+            "Add error:",
+            error
+        );
 
-        alert("Error adding student.");
+        alert(
+            "Error adding student.\n\n" +
+            error.message
+        );
 
     }
+
 }
 
 
-// ==============================
+// ============================================
 // EDIT STUDENT
-// ==============================
+// ============================================
 
 function editStudent(id) {
 
     const student =
-        students.find(item => item.ID == id);
+        students.find(
 
-    if (!student) return;
+            item =>
+                String(item.ID) ===
+                String(id)
 
-    editingId = id;
+        );
 
-    document.getElementById("firstName").value =
+
+    if (!student) {
+
+        alert(
+            "Student record not found."
+        );
+
+        return;
+
+    }
+
+
+    // IMPORTANT:
+    // Use actual Google Sheet row
+
+    editingRow =
+        Number(student.row);
+
+
+    // Fill form
+
+    document
+        .getElementById("firstName")
+        .value =
         student["First Name"];
 
-    document.getElementById("lastName").value =
+
+    document
+        .getElementById("lastName")
+        .value =
         student["Last Name"];
 
-    document.getElementById("course").value =
+
+    document
+        .getElementById("course")
+        .value =
         student.Course;
 
-    document.getElementById("yearLevel").value =
+
+    document
+        .getElementById("yearLevel")
+        .value =
         student["Year Level"];
 
-    document.getElementById("email").value =
+
+    document
+        .getElementById("email")
+        .value =
         student.Email;
 
 
-    document.getElementById("formTitle").textContent =
+    // Change UI
+
+    document
+        .getElementById("formTitle")
+        .textContent =
         "Edit Student";
 
-    document.getElementById("saveBtn").textContent =
+
+    document
+        .getElementById("saveBtn")
+        .textContent =
         "Update Student";
 
-    document.getElementById("cancelBtn").style.display =
+
+    document
+        .getElementById("cancelBtn")
+        .style.display =
         "block";
 
+
+    // Scroll to form
+
     window.scrollTo({
+
         top: 0,
+
         behavior: "smooth"
+
     });
+
 }
 
 
-// ==============================
+// ============================================
 // UPDATE STUDENT
-// ==============================
+// ============================================
 
 async function updateStudent(
-    id,
+    row,
     firstName,
     lastName,
     course,
@@ -277,129 +477,240 @@ async function updateStudent(
 
     try {
 
-        const response = await fetch(API_URL, {
+        const response =
+            await fetch(API_URL, {
 
-            method: "POST",
+                method: "POST",
 
-            body: JSON.stringify({
+                body: JSON.stringify({
 
-                action: "update",
+                    action: "update",
 
-                id: id,
+                    row:
+                        row,
 
-                firstName: firstName,
-                lastName: lastName,
-                course: course,
-                yearLevel: yearLevel,
-                email: email
+                    firstName:
+                        firstName,
 
-            })
+                    lastName:
+                        lastName,
 
-        });
+                    course:
+                        course,
 
-        const result = await response.json();
+                    yearLevel:
+                        yearLevel,
 
-        if (result.success) {
+                    email:
+                        email
 
-            alert("Student updated successfully!");
+                })
 
-            cancelEdit();
+            });
 
-            loadStudents();
 
-        } else {
+        const result =
+            await response.json();
 
-            alert("Failed to update student.");
+
+        console.log(
+            "UPDATE Response:",
+            result
+        );
+
+
+        if (!result.success) {
+
+            throw new Error(
+                result.error ||
+                "Failed to update student."
+            );
 
         }
 
+
+        alert(
+            "Student updated successfully!"
+        );
+
+
+        cancelEdit();
+
+
+        await loadStudents();
+
+
     } catch (error) {
 
-        console.error(error);
+        console.error(
+            "Update error:",
+            error
+        );
 
-        alert("Error updating student.");
+        alert(
+            "Error updating student.\n\n" +
+            error.message
+        );
 
     }
+
 }
 
 
-// ==============================
+// ============================================
 // DELETE STUDENT
-// ==============================
+// ============================================
 
-async function deleteStudent(id) {
+async function deleteStudent(row) {
 
     const confirmDelete =
-        confirm("Are you sure you want to delete this student?");
+        confirm(
+            "Are you sure you want to delete this student?"
+        );
 
-    if (!confirmDelete) return;
+
+    if (!confirmDelete) {
+
+        return;
+
+    }
+
 
     try {
 
-        const response = await fetch(API_URL, {
+        const response =
+            await fetch(API_URL, {
 
-            method: "POST",
+                method: "POST",
 
-            body: JSON.stringify({
+                body: JSON.stringify({
 
-                action: "delete",
+                    action: "delete",
 
-                id: id
+                    row:
+                        Number(row)
 
-            })
+                })
 
-        });
+            });
 
-        const result = await response.json();
 
-        if (result.success) {
+        const result =
+            await response.json();
 
-            alert("Student deleted successfully!");
 
-            loadStudents();
+        console.log(
+            "DELETE Response:",
+            result
+        );
 
-        } else {
 
-            alert("Failed to delete student.");
+        if (!result.success) {
+
+            throw new Error(
+                result.error ||
+                "Failed to delete student."
+            );
 
         }
 
+
+        alert(
+            "Student deleted successfully!"
+        );
+
+
+        await loadStudents();
+
+
     } catch (error) {
 
-        console.error(error);
+        console.error(
+            "Delete error:",
+            error
+        );
 
-        alert("Error deleting student.");
+        alert(
+            "Error deleting student.\n\n" +
+            error.message
+        );
 
     }
+
 }
 
 
-// ==============================
+// ============================================
 // CANCEL EDIT
-// ==============================
+// ============================================
 
 function cancelEdit() {
 
-    editingId = null;
+    editingRow = null;
+
 
     document
         .getElementById("studentForm")
         .reset();
 
-    document.getElementById("formTitle").textContent =
+
+    document
+        .getElementById("formTitle")
+        .textContent =
         "Add Student";
 
-    document.getElementById("saveBtn").textContent =
+
+    document
+        .getElementById("saveBtn")
+        .textContent =
         "Add Student";
 
-    document.getElementById("cancelBtn").style.display =
+
+    document
+        .getElementById("cancelBtn")
+        .style.display =
         "none";
+
 }
 
 
-// ==============================
-// SEARCH
-// ==============================
+// ============================================
+// CLEAR FORM
+// ============================================
+
+function clearForm() {
+
+    document
+        .getElementById("studentForm")
+        .reset();
+
+
+    editingRow = null;
+
+
+    document
+        .getElementById("formTitle")
+        .textContent =
+        "Add Student";
+
+
+    document
+        .getElementById("saveBtn")
+        .textContent =
+        "Add Student";
+
+
+    document
+        .getElementById("cancelBtn")
+        .style.display =
+        "none";
+
+}
+
+
+// ============================================
+// SEARCH STUDENTS
+// ============================================
 
 function searchStudents() {
 
@@ -407,7 +718,9 @@ function searchStudents() {
         document
             .getElementById("searchInput")
             .value
-            .toLowerCase();
+            .toLowerCase()
+            .trim();
+
 
     const filtered =
         students.filter(student => {
@@ -438,6 +751,12 @@ function searchStudents() {
 
                 ||
 
+                String(student["Year Level"])
+                    .toLowerCase()
+                    .includes(keyword)
+
+                ||
+
                 String(student.Email)
                     .toLowerCase()
                     .includes(keyword)
@@ -446,12 +765,21 @@ function searchStudents() {
 
         });
 
+
     displayStudents(filtered);
+
 }
 
 
-// ==============================
+// ============================================
 // INITIAL LOAD
-// ==============================
+// ============================================
 
-loadStudents();
+document.addEventListener(
+    "DOMContentLoaded",
+    function() {
+
+        loadStudents();
+
+    }
+);
