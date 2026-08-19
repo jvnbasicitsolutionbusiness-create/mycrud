@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Information System</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="container">
+
+        <header>
+            <h1>Student Information System</h1>
+            <p>Welcome User</p>
+        </header>
+
+        <section class="form-card">
+
+            <h2 id="formTitle">Add Student</h2>
+
+            <form id="studentForm">
+
+                <input type="hidden" id="studentId">
+
+                <div class="form-group">
+                    <label>First Name</label>
+                    <input type="text" id="firstName" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Last Name</label>
+                    <input type="text" id="lastName" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Course</label>
+                    <input type="text" id="course" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Year Level</label>
+                    <select id="yearLevel" required>
+                        <option value="">Select Year</option>
+                        <option value="1st Year">1st Year</option>
+                        <option value="2nd Year">2nd Year</option>
+                        <option value="3rd Year">3rd Year</option>
+                        <option value="4th Year">4th Year</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="email" required>
+                </div>
+
+                <div class="buttons">
+                    <button type="submit" class="btn-primary" id="saveBtn">
+                        Add Student
+                    </button>
+
+                    <button type="button" class="btn-secondary"
+                            id="cancelBtn"
+                            onclick="cancelEdit()"
+                            style="display:none;">
+                        Cancel
+                    </button>
+                </div>
+
+            </form>
+
+        </section>
+
+        <section class="table-card">
+
+            <div class="table-header">
+
+                <h2>Student Records</h2>
+
+                <input
+                    type="text"
+                    id="searchInput"
+                    placeholder="Search student..."
+                    onkeyup="searchStudents()"
+                >
+
+            </div>
+
+            <div class="table-container">
+
+                <table>
+
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>First Name</th>
+                            <th>Last Name</th>
+                            <th>Course</th>
+                            <th>Year Level</th>
+                            <th>Email</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+
+                    <tbody id="studentTableBody">
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </section>
+
+    </div>
+
+    <script src="script.js"></script>
+
+</body>
+</html>
