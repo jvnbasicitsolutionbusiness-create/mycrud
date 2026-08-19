@@ -1,20 +1,38 @@
 const API_URL =
-    "https://script.google.com/macros/s/AKfycbzj_o_-U7ngHlCFHw9AOscuOcyV01447PTmemJyFodeYKMvnrvFZ6em6bPYeOrMW0QT/exec";
+    "https://script.google.com/macros/s/AKfycbxiKcV1BydQ8hmQ7woxriH_dlCZByJBPKzaKbNx1sdz3QF_E0P5YIAU8-Qk2kmcqljC/exec";
 
 let students = [];
 let editingRow = null;
 
 
-// ============================================
-// LOAD STUDENTS - READ
-// ============================================
+// ======================================================
+// LOAD STUDENTS
+// ======================================================
 
 async function loadStudents() {
 
+    const tableBody =
+        document.getElementById("studentTableBody");
+
+    // Show loading
+
+    tableBody.innerHTML = `
+        <tr>
+            <td colspan="7" style="text-align:center;">
+                Loading student records...
+            </td>
+        </tr>
+    `;
+
+
     try {
 
-        const response =
-            await fetch(API_URL);
+        // Add timestamp to prevent cached response
+
+        const response = await fetch(
+            API_URL + "?t=" + new Date().getTime()
+        );
+
 
         if (!response.ok) {
 
@@ -29,26 +47,54 @@ async function loadStudents() {
             await response.json();
 
 
-        console.log("GET Response:", result);
+        console.log(
+            "APPS SCRIPT GET RESPONSE:",
+            result
+        );
 
 
-        // Check Apps Script response
+        // ==================================================
+        // HANDLE DIFFERENT RESPONSE FORMATS
+        // ==================================================
 
-        if (!result.success) {
+        if (Array.isArray(result)) {
+
+            students = result;
+
+        }
+
+        else if (
+            result &&
+            Array.isArray(result.data)
+        ) {
+
+            students = result.data;
+
+        }
+
+        else if (
+            result &&
+            Array.isArray(result.messages)
+        ) {
+
+            students = result.messages;
+
+        }
+
+        else {
 
             throw new Error(
                 result.error ||
-                "Failed to load records."
+                "No student data received from Google Sheets."
             );
 
         }
 
 
-        // IMPORTANT:
-        // Apps Script returns { success, messages }
-
-        students =
-            result.messages || [];
+        console.log(
+            "STUDENTS LOADED:",
+            students
+        );
 
 
         displayStudents(students);
@@ -57,23 +103,32 @@ async function loadStudents() {
     } catch (error) {
 
         console.error(
-            "Error loading students:",
+            "LOAD ERROR:",
             error
         );
 
-        alert(
-            "Failed to load student records.\n\n" +
-            error.message
-        );
+
+        students = [];
+
+
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="7" style="text-align:center; color:red;">
+                    Failed to load student records.
+                    <br>
+                    ${error.message}
+                </td>
+            </tr>
+        `;
 
     }
 
 }
 
 
-// ============================================
+// ======================================================
 // DISPLAY STUDENTS
-// ============================================
+// ======================================================
 
 function displayStudents(data) {
 
@@ -86,33 +141,24 @@ function displayStudents(data) {
     tableBody.innerHTML = "";
 
 
-    // No records
-
-    if (!data || data.length === 0) {
+    if (
+        !data ||
+        data.length === 0
+    ) {
 
         tableBody.innerHTML = `
-
             <tr>
-
-                <td
-                    colspan="7"
-                    style="text-align:center;"
-                >
+                <td colspan="7" style="text-align:center;">
                     No records found
                 </td>
-
             </tr>
-
         `;
 
         return;
-
     }
 
 
-    // Display records
-
-    data.forEach(student => {
+    data.forEach(function(student) {
 
         const row =
             document.createElement("tr");
@@ -121,27 +167,27 @@ function displayStudents(data) {
         row.innerHTML = `
 
             <td>
-                ${student.ID}
+                ${student.ID ?? ""}
             </td>
 
             <td>
-                ${student["First Name"]}
+                ${student["First Name"] ?? ""}
             </td>
 
             <td>
-                ${student["Last Name"]}
+                ${student["Last Name"] ?? ""}
             </td>
 
             <td>
-                ${student.Course}
+                ${student.Course ?? ""}
             </td>
 
             <td>
-                ${student["Year Level"]}
+                ${student["Year Level"] ?? ""}
             </td>
 
             <td>
-                ${student.Email}
+                ${student.Email ?? ""}
             </td>
 
             <td>
@@ -174,9 +220,9 @@ function displayStudents(data) {
 }
 
 
-// ============================================
-// ADD / UPDATE FORM
-// ============================================
+// ======================================================
+// CREATE / UPDATE
+// ======================================================
 
 document
     .getElementById("studentForm")
@@ -221,9 +267,21 @@ document
                     .trim();
 
 
-            // ====================================
+            if (!firstName ||
+                !lastName ||
+                !course ||
+                !yearLevel ||
+                !email) {
+
+                alert(
+                    "Please complete all fields."
+                );
+
+                return;
+            }
+
+
             // UPDATE
-            // ====================================
 
             if (editingRow !== null) {
 
@@ -246,9 +304,7 @@ document
             }
 
 
-            // ====================================
             // CREATE
-            // ====================================
 
             else {
 
@@ -272,9 +328,9 @@ document
     );
 
 
-// ============================================
+// ======================================================
 // CREATE STUDENT
-// ============================================
+// ======================================================
 
 async function addStudent(
     firstName,
@@ -320,7 +376,7 @@ async function addStudent(
 
 
         console.log(
-            "CREATE Response:",
+            "CREATE RESPONSE:",
             result
         );
 
@@ -343,18 +399,22 @@ async function addStudent(
         clearForm();
 
 
+        // IMPORTANT:
+        // Reload table after saving
+
         await loadStudents();
 
 
     } catch (error) {
 
         console.error(
-            "Add error:",
+            "CREATE ERROR:",
             error
         );
 
+
         alert(
-            "Error adding student.\n\n" +
+            "Error adding student:\n\n" +
             error.message
         );
 
@@ -363,20 +423,19 @@ async function addStudent(
 }
 
 
-// ============================================
+// ======================================================
 // EDIT STUDENT
-// ============================================
+// ======================================================
 
 function editStudent(id) {
 
     const student =
-        students.find(
+        students.find(function(item) {
 
-            item =>
-                String(item.ID) ===
-                String(id)
+            return String(item.ID) ===
+                   String(id);
 
-        );
+        });
 
 
     if (!student) {
@@ -386,50 +445,42 @@ function editStudent(id) {
         );
 
         return;
-
     }
 
-
-    // IMPORTANT:
-    // Use actual Google Sheet row
 
     editingRow =
         Number(student.row);
 
 
-    // Fill form
-
     document
         .getElementById("firstName")
         .value =
-        student["First Name"];
+        student["First Name"] || "";
 
 
     document
         .getElementById("lastName")
         .value =
-        student["Last Name"];
+        student["Last Name"] || "";
 
 
     document
         .getElementById("course")
         .value =
-        student.Course;
+        student.Course || "";
 
 
     document
         .getElementById("yearLevel")
         .value =
-        student["Year Level"];
+        student["Year Level"] || "";
 
 
     document
         .getElementById("email")
         .value =
-        student.Email;
+        student.Email || "";
 
-
-    // Change UI
 
     document
         .getElementById("formTitle")
@@ -446,10 +497,8 @@ function editStudent(id) {
     document
         .getElementById("cancelBtn")
         .style.display =
-        "block";
+        "inline-block";
 
-
-    // Scroll to form
 
     window.scrollTo({
 
@@ -462,9 +511,9 @@ function editStudent(id) {
 }
 
 
-// ============================================
+// ======================================================
 // UPDATE STUDENT
-// ============================================
+// ======================================================
 
 async function updateStudent(
     row,
@@ -487,7 +536,7 @@ async function updateStudent(
                     action: "update",
 
                     row:
-                        row,
+                        Number(row),
 
                     firstName:
                         firstName,
@@ -514,7 +563,7 @@ async function updateStudent(
 
 
         console.log(
-            "UPDATE Response:",
+            "UPDATE RESPONSE:",
             result
         );
 
@@ -543,12 +592,13 @@ async function updateStudent(
     } catch (error) {
 
         console.error(
-            "Update error:",
+            "UPDATE ERROR:",
             error
         );
 
+
         alert(
-            "Error updating student.\n\n" +
+            "Error updating student:\n\n" +
             error.message
         );
 
@@ -557,19 +607,17 @@ async function updateStudent(
 }
 
 
-// ============================================
+// ======================================================
 // DELETE STUDENT
-// ============================================
+// ======================================================
 
 async function deleteStudent(row) {
 
-    const confirmDelete =
-        confirm(
+    if (
+        !confirm(
             "Are you sure you want to delete this student?"
-        );
-
-
-    if (!confirmDelete) {
+        )
+    ) {
 
         return;
 
@@ -600,7 +648,7 @@ async function deleteStudent(row) {
 
 
         console.log(
-            "DELETE Response:",
+            "DELETE RESPONSE:",
             result
         );
 
@@ -626,12 +674,13 @@ async function deleteStudent(row) {
     } catch (error) {
 
         console.error(
-            "Delete error:",
+            "DELETE ERROR:",
             error
         );
 
+
         alert(
-            "Error deleting student.\n\n" +
+            "Error deleting student:\n\n" +
             error.message
         );
 
@@ -640,9 +689,9 @@ async function deleteStudent(row) {
 }
 
 
-// ============================================
+// ======================================================
 // CANCEL EDIT
-// ============================================
+// ======================================================
 
 function cancelEdit() {
 
@@ -674,18 +723,18 @@ function cancelEdit() {
 }
 
 
-// ============================================
+// ======================================================
 // CLEAR FORM
-// ============================================
+// ======================================================
 
 function clearForm() {
+
+    editingRow = null;
+
 
     document
         .getElementById("studentForm")
         .reset();
-
-
-    editingRow = null;
 
 
     document
@@ -708,9 +757,9 @@ function clearForm() {
 }
 
 
-// ============================================
-// SEARCH STUDENTS
-// ============================================
+// ======================================================
+// SEARCH
+// ======================================================
 
 function searchStudents() {
 
@@ -722,44 +771,69 @@ function searchStudents() {
             .trim();
 
 
+    // If search is empty,
+    // show ALL students
+
+    if (keyword === "") {
+
+        displayStudents(students);
+
+        return;
+
+    }
+
+
     const filtered =
-        students.filter(student => {
+        students.filter(function(student) {
+
+            const id =
+                String(student.ID || "")
+                    .toLowerCase();
+
+            const firstName =
+                String(
+                    student["First Name"] || ""
+                )
+                    .toLowerCase();
+
+            const lastName =
+                String(
+                    student["Last Name"] || ""
+                )
+                    .toLowerCase();
+
+            const course =
+                String(
+                    student.Course || ""
+                )
+                    .toLowerCase();
+
+            const yearLevel =
+                String(
+                    student["Year Level"] || ""
+                )
+                    .toLowerCase();
+
+            const email =
+                String(
+                    student.Email || ""
+                )
+                    .toLowerCase();
+
 
             return (
 
-                String(student.ID)
-                    .toLowerCase()
-                    .includes(keyword)
+                id.includes(keyword) ||
 
-                ||
+                firstName.includes(keyword) ||
 
-                String(student["First Name"])
-                    .toLowerCase()
-                    .includes(keyword)
+                lastName.includes(keyword) ||
 
-                ||
+                course.includes(keyword) ||
 
-                String(student["Last Name"])
-                    .toLowerCase()
-                    .includes(keyword)
+                yearLevel.includes(keyword) ||
 
-                ||
-
-                String(student.Course)
-                    .toLowerCase()
-                    .includes(keyword)
-
-                ||
-
-                String(student["Year Level"])
-                    .toLowerCase()
-                    .includes(keyword)
-
-                ||
-
-                String(student.Email)
-                    .toLowerCase()
-                    .includes(keyword)
+                email.includes(keyword)
 
             );
 
@@ -771,9 +845,9 @@ function searchStudents() {
 }
 
 
-// ============================================
-// INITIAL LOAD
-// ============================================
+// ======================================================
+// PAGE LOAD
+// ======================================================
 
 document.addEventListener(
     "DOMContentLoaded",
